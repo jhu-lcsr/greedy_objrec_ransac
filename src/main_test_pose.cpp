@@ -5,7 +5,7 @@
  * Created on April 4, 2015, 11:20 AM
  */
 
-#include "src/Greedy/utility.h"
+#include "Greedy/utility.h"
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 
 std::string link_mesh_name("data/link_uniform.obj");

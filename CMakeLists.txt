@@ -132,8 +132,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES greedy_objrec_ransac
-  CATKIN_DEPENDS ObjRecRANSAC sensor_msgs
-#  DEPENDS system_lib
+  CATKIN_DEPENDS ObjRecRANSAC pcl_ros sensor_msgs
+ DEPENDS ObjRecRANSAC
 )
 
 ###########
@@ -151,17 +151,18 @@ add_library(greedy_objrec_ransac
   src/Greedy/seg.h
   src/Greedy/seg.cpp
 )
+target_link_libraries(greedy_objrec_ransac ${ObjRecRANSAC_LIBRARY} ${PCL_LIBRARIES} ${OpenCV_LIBS})
 
 ## Declare cpp executables
 
 add_executable(SegRansac src/main_seg.cpp)
-target_link_libraries(SegRansac ${ObjRecRANSAC_Library} VtkBasics vtkIO vtkCommon vtkRendering greedy_objrec_ransac${OpenCV_LIBS} ${PCL_LIBRARIES} rt)
+target_link_libraries(SegRansac ${ObjRecRANSAC_LIBRARY} ${VTK_LIBS} vtkIO vtkCommon vtkRendering greedy_objrec_ransac ${OpenCV_LIBS} ${PCL_LIBRARIES} rt)
 
 add_executable(poseTest src/main_test_pose.cpp)
-target_link_libraries(poseTest ${ObjRecRANSAC_Library} VtkBasics vtkIO vtkCommon vtkRendering greedy_objrec_ransac ${OpenCV_LIBS} ${PCL_LIBRARIES} rt)
+target_link_libraries(poseTest ${ObjRecRANSAC_LIBRARY} ${VTK_LIBS} vtkIO vtkCommon vtkRendering greedy_objrec_ransac ${OpenCV_LIBS} ${PCL_LIBRARIES} rt)
 
 add_executable(segTest src/main_test_seg.cpp)
-target_link_libraries(segTest ${ObjRecRANSAC_Library} VtkBasics vtkIO vtkCommon vtkRendering greedy_objrec_ransac ${OpenCV_LIBS} ${PCL_LIBRARIES} rt)
+target_link_libraries(segTest ${ObjRecRANSAC_LIBRARY} ${VTK_LIBS} vtkIO vtkCommon vtkRendering greedy_objrec_ransac ${OpenCV_LIBS} ${PCL_LIBRARIES} rt)
 
 #############
 ## Install ##
