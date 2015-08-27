@@ -6,6 +6,8 @@
  */
 
 #include "utility.h"
+#ifndef _GREEDY_SEG
+#define _GREEDY_SEG
 
 struct segT{
   pcl::PointCloud<PointT>::Ptr cloud;
@@ -58,3 +60,4 @@ private:
 };
 
 
+#endif
