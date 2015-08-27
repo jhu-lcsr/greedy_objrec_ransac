@@ -1,0 +1,6 @@
+<launch>
+  <node name="objrec_node" pkg="greedy_objrec_ransac" type="node" output="screen"
+    args="--link $(find greedy_objrec_ransac)/data/link_uniform --node $(find greedy_objrec_ransac)/data/node_uniform --m 4">
+    <remap from="points_in" to="/semantic_segmentation/points_out"/>
+  </node>
+</launch>
