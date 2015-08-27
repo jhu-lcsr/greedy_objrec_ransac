@@ -168,6 +168,9 @@ target_link_libraries(poseTest ${catkin_LIBRARIES} ${ObjRecRANSAC_LIBRARY} ${VTK
 add_executable(segTest src/main_test_seg.cpp)
 target_link_libraries(segTest ${catkin_LIBRARIES} ${ObjRecRANSAC_LIBRARY} ${VTK_LIBS} vtkIO vtkCommon vtkRendering greedy_objrec_ransac ${OpenCV_LIBS} ${PCL_LIBRARIES} rt)
 
+add_executable(node src/node.cpp)
+target_link_libraries(node ${catkin_LIBRARIES} ${ObjRecRANSAC_LIBRARY} ${VTK_LIBS} vtkIO vtkCommon vtkRendering greedy_objrec_ransac ${OpenCV_LIBS} ${PCL_LIBRARIES} rt)
+
 #############
 ## Install ##
 #############
