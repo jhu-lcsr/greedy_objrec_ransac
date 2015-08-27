@@ -13,6 +13,8 @@
 // ros communication stuff
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Pose.h>
 
 // include to convert from messages to pointclouds and vice versa
 #include <pcl_conversions/pcl_conversions.h>
@@ -69,6 +71,7 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
     viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0.5, 0.5, 0.5, "whole_scene");
   }
   std::vector<poseT> all_poses;
+  std::vector<poseT> link_poses, node_poses;
   switch(method_id)
   {
     case 0:
@@ -117,7 +120,7 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
         splitCloud(scene_pc, link_cloud, node_cloud);
 
         t1 = get_wall_time();
-        std::vector<poseT> link_poses, node_poses;
+        //std::vector<poseT> link_poses, node_poses;
         linkrec.StandardRecognize(link_cloud, link_poses);
         noderec.StandardRecognize(node_cloud, node_poses);
         t2 = get_wall_time();
@@ -172,7 +175,6 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
         splitCloud(scene_pc, link_cloud, node_cloud);
 
         t1 = get_wall_time();
-        std::vector<poseT> link_poses, node_poses;
         linkrec.GreedyRecognize(link_cloud, link_poses);
         noderec.GreedyRecognize(node_cloud, node_poses);
         t2 = get_wall_time();
@@ -200,16 +202,57 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
       case 3:
       case 4:
       case 5:
-        linkrec.visualize(viewer, all_poses);
-        noderec.visualize(viewer, all_poses);
+        linkrec.visualize(viewer, link_poses);
+        noderec.visualize(viewer, node_poses);
         break;
       default:return;
     }
     viewer->spin();
   }
 
-  // publish poses as TF
+  geometry_msgs::PoseArray links;
+  geometry_msgs::PoseArray nodes;
 
+  // publish poses as TF
+  if (method_id < 3) {
+    for (poseT &p: all_poses) {
+      geometry_msgs::Pose pose;
+      pose.position.x = p.shift[0];
+      pose.position.y = p.shift[1];
+      pose.position.z = p.shift[2];
+      pose.orientation.x = p.rotation.x();
+      pose.orientation.y = p.rotation.y();
+      pose.orientation.z = p.rotation.z();
+      pose.orientation.w = p.rotation.w();
+      links.poses.push_back(pose);
+    }
+    pub_link.publish(links);
+  } else {
+    for (poseT &p: all_poses) {
+      geometry_msgs::Pose pose;
+      pose.position.x = p.shift[0];
+      pose.position.y = p.shift[1];
+      pose.position.z = p.shift[2];
+      pose.orientation.x = p.rotation.x();
+      pose.orientation.y = p.rotation.y();
+      pose.orientation.z = p.rotation.z();
+      pose.orientation.w = p.rotation.w();
+      links.poses.push_back(pose);
+    }
+    for (poseT &p: all_poses) {
+      geometry_msgs::Pose pose;
+      pose.position.x = p.shift[0];
+      pose.position.y = p.shift[1];
+      pose.position.z = p.shift[2];
+      pose.orientation.x = p.rotation.x();
+      pose.orientation.y = p.rotation.y();
+      pose.orientation.z = p.rotation.z();
+      pose.orientation.w = p.rotation.w();
+      nodes.poses.push_back(pose);
+    }
+    pub_link.publish(links);
+    pub_link.publish(nodes);
+  }
 
 
 }
@@ -272,8 +315,12 @@ int main(int argc, char** argv)
     default:return 0;
   }
 
-  pub_link = nh.advertise<sensor_msgs::PointCloud2>("links",1000);
-  pub_node = nh.advertise<sensor_msgs::PointCloud2>("nodes",1000);
+  if (method_id < 3) {
+    pub_link = nh.advertise<geometry_msgs::PoseArray>("objects",1000);
+  } else {
+    pub_link = nh.advertise<geometry_msgs::PoseArray>("links",1000);
+    pub_node = nh.advertise<geometry_msgs::PoseArray>("nodes",1000);
+  }
   sub = nh.subscribe("points_in",1,callback);
 
   // send and recieve messages

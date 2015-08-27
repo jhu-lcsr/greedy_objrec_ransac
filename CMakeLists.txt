@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(greedy_objrec_ransac)
 
+add_definitions(-g -std=c++0x -pthread)
 
 IF(OBJREC_USE_CUDA)
   set(OBJREC_CUDA_DEVICE_ID 1 CACHE STRING "Which GPU device to use when running")
@@ -36,7 +37,7 @@ IF(NOT OpenCV_FOUND)
   If OpenCV is installed but cmake can not find it, set the OPENCV_DIR entry to the folder which contains the file OpenCVConfig.cmake")
 ENDIF(NOT OpenCV_FOUND)
 
-find_package(PCL REQUIRED)
+find_package(PCL 1.7 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
