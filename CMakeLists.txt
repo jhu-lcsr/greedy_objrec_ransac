@@ -58,6 +58,10 @@ find_library(ObjRecRANSAC_LIBRARY ObjRecRANSAC)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
+  pcl_ros
+  pcl_conversions
+  pluginlib
+  nodelet
 )
 
 ## System dependencies are found with CMake's conventions
@@ -132,8 +136,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES greedy_objrec_ransac
-  CATKIN_DEPENDS ObjRecRANSAC pcl_ros sensor_msgs
- DEPENDS ObjRecRANSAC
+  CATKIN_DEPENDS ObjRecRANSAC pcl_ros sensor_msgs pluginlib nodelet
+  DEPENDS ObjRecRANSAC
 )
 
 ###########
