@@ -49,7 +49,9 @@ std::string path("data/ln_joint/");
 
 void callback(const sensor_msgs::PointCloud2 &pc) {
 
-  int t1, t2, avg_t;
+  double t1, t2, avg_t;
+
+  ROS_INFO("Received point cloud! Applying method %d",method_id);
 
   pcl::PointCloud<PointT>::Ptr scene_pc(new pcl::PointCloud<PointT>());
 
@@ -58,12 +60,14 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
 
   pcl::fromPCLPointCloud2(pcl_pc, *scene_pc);
 
-  if( scene_pc->empty() == true )
+  if( scene_pc->empty() == true ) {
     ROS_ERROR("Recieved empty point cloud message!");
-  return;
+    return;
+  }
 
   pcl::PointCloud<myPointXYZ>::Ptr scene_xyz(new pcl::PointCloud<myPointXYZ>());
   pcl::copyPointCloud(*scene_pc, *scene_xyz);
+
   if( view_flag == true )
   {
     viewer->removeAllPointClouds();
@@ -72,6 +76,8 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
   }
   std::vector<poseT> all_poses;
   std::vector<poseT> link_poses, node_poses;
+
+  std::cout << " ... processing:" << std::endl;
   switch(method_id)
   {
     case 0:
@@ -120,10 +126,12 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
         splitCloud(scene_pc, link_cloud, node_cloud);
 
         t1 = get_wall_time();
+        std::cout << " ... starting at " << t1 << std::endl;
         //std::vector<poseT> link_poses, node_poses;
         linkrec.StandardRecognize(link_cloud, link_poses);
         noderec.StandardRecognize(node_cloud, node_poses);
         t2 = get_wall_time();
+        std::cout << " ... done at " << t2 << std::endl;
 
         all_poses.insert(all_poses.end(), link_poses.begin(), link_poses.end());
         all_poses.insert(all_poses.end(), node_poses.begin(), node_poses.end());
@@ -136,6 +144,7 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
         splitCloud(scene_pc, link_cloud, node_cloud);
 
         t1 = get_wall_time();
+        std::cout << " ... starting at " << t1 << std::endl;
         int pose_num = 0;
         std::vector<poseT> tmp_poses;
         int iter = 0;
@@ -149,21 +158,26 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
 
           linkrec.mergeHypotheses(scene_xyz, acc_hypotheses, tmp_poses);
 
-          if( tmp_poses.size() <= pose_num )
+          if( tmp_poses.size() <= pose_num ) {
             break;
-          else
+          } else {
             pose_num = tmp_poses.size();
+            std::cout << tmp_poses.size() << std::endl;
+          }
 
           pcl::PointCloud<myPointXYZ>::Ptr link_model = linkrec.FillModelCloud(tmp_poses);
           pcl::PointCloud<myPointXYZ>::Ptr node_model = noderec.FillModelCloud(tmp_poses);
 
-          if( link_model->empty() == false )
+          if( link_model->empty() == false ) {
             link_cloud = FilterCloud(link_cloud, link_model);
-          if( node_model->empty() == false)
+          }
+          if( node_model->empty() == false) {
             node_cloud = FilterCloud(node_cloud, node_model);
+          }
           iter++;
         }
         t2 = get_wall_time();
+        std::cout << " ... done at " << t2 << std::endl;
         //std::cerr<< "Recognizing Done!!!" << std::endl;
         all_poses = RefinePoses(scene_xyz, mesh_set, tmp_poses);
         break;
@@ -187,7 +201,9 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
         all_poses = RefinePoses(scene_xyz, mesh_set, tmp_poses);
         break;
       }
-    default:return;
+    default:
+      ROS_ERROR("Code %d not recognized!",method_id);
+      return;
   }
 
   if( view_flag == true )
@@ -202,16 +218,17 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
       case 3:
       case 4:
       case 5:
-        linkrec.visualize(viewer, link_poses);
-        noderec.visualize(viewer, node_poses);
+        linkrec.visualize(viewer, all_poses);
+        noderec.visualize(viewer, all_poses);
         break;
-      default:return;
     }
     viewer->spin();
   }
 
   geometry_msgs::PoseArray links;
   geometry_msgs::PoseArray nodes;
+  links.header.frame_id = pc.header.frame_id;
+  nodes.header.frame_id = pc.header.frame_id;
 
   // publish poses as TF
   if (method_id < 3) {
@@ -254,6 +271,9 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
     pub_link.publish(nodes);
   }
 
+  std::cout << "Time 1 = " << t1 << std::endl;
+  std::cout << "Time 2 = " << t2 << std::endl;
+  ROS_INFO("... done.");
 
 }
 
@@ -273,6 +293,8 @@ int main(int argc, char** argv)
   pcl::console::parse_argument(argc, argv, "--m", method_id);
   pcl::console::parse_argument(argc, argv, "--p", path);
   pcl::console::parse_argument(argc, argv, "--t", trial_id);
+  pcl::console::parse_argument(argc, argv, "--link", link_mesh_name);
+  pcl::console::parse_argument(argc, argv, "--node", node_mesh_name);
 
   bool view_flag = false;
   if( pcl::console::find_switch(argc, argv, "-v") == true )
@@ -292,8 +314,10 @@ int main(int argc, char** argv)
 
   if( method_id >= 3 )
   {
-    link_mesh = LoadMesh(link_mesh_name + ".obj", "link");
-    node_mesh = LoadMesh(node_mesh_name + ".obj", "node");
+    ROS_INFO("Loading link mesh from \"%s.obj\"...",link_mesh_name.c_str());
+    link_mesh = LoadMesh(link_mesh_name+".obj", "link");
+    ROS_INFO("Loading node mesh from \"%s.obj\"...",node_mesh_name.c_str());
+    node_mesh = LoadMesh(node_mesh_name+".obj", "node");
     mesh_set.push_back(link_mesh);
     mesh_set.push_back(node_mesh);
   }
