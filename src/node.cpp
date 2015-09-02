@@ -19,6 +19,8 @@
 // include to convert from messages to pointclouds and vice versa
 #include <pcl_conversions/pcl_conversions.h>
 
+#include <memory>
+
 //=========================================================================================================================
 
 bool view_flag = false;
@@ -36,9 +38,9 @@ double linkWidth = 0.15;
 double nodeWidth = 0.05;
 double voxelSize = 0.003;
 
-greedyObjRansac linkrec(linkWidth, voxelSize);
-greedyObjRansac noderec(nodeWidth, voxelSize);
-greedyObjRansac objrec(nodeWidth, voxelSize);
+std::shared_ptr<greedyObjRansac> linkrec;
+std::shared_ptr<greedyObjRansac> noderec;
+std::shared_ptr<greedyObjRansac> objrec;
 
 ModelT link_mesh, node_mesh;
 std::vector<ModelT> mesh_set;
@@ -82,7 +84,7 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
   {
     case 0:
       t1 = get_wall_time();
-      objrec.StandardRecognize(scene_xyz, all_poses);
+      objrec->StandardRecognize(scene_xyz, all_poses);
       t2 = get_wall_time();
       break;
     case 1:
@@ -95,13 +97,13 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
         while(true)
         {
           //std::cerr<< "Recognizing Attempt --- " << iter << std::endl;
-          objrec.StandardRecognize(filtered_cloud, all_poses);
+          objrec->StandardRecognize(filtered_cloud, all_poses);
           if( all_poses.size() <= pose_num )
             break;
           else
             pose_num = all_poses.size();
 
-          pcl::PointCloud<myPointXYZ>::Ptr model_cloud = objrec.FillModelCloud(all_poses);
+          pcl::PointCloud<myPointXYZ>::Ptr model_cloud = objrec->FillModelCloud(all_poses);
           filtered_cloud = FilterCloud(filtered_cloud, model_cloud);
 
           iter++;
@@ -114,7 +116,7 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
       {
         //std::vector<poseT> tmp_poses;
         t1 = get_wall_time();
-        objrec.GreedyRecognize(scene_xyz, all_poses);
+        objrec->GreedyRecognize(scene_xyz, all_poses);
         t2 = get_wall_time();
         //all_poses = RefinePoses(scene_xyz, mesh_set, tmp_poses);
         break;
@@ -128,8 +130,8 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
         t1 = get_wall_time();
         std::cout << " ... starting at " << t1 << std::endl;
         //std::vector<poseT> link_poses, node_poses;
-        linkrec.StandardRecognize(link_cloud, link_poses);
-        noderec.StandardRecognize(node_cloud, node_poses);
+        linkrec->StandardRecognize(link_cloud, link_poses);
+        noderec->StandardRecognize(node_cloud, node_poses);
         t2 = get_wall_time();
         std::cout << " ... done at " << t2 << std::endl;
 
@@ -153,21 +155,25 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
           //std::cerr<< "Recognizing Attempt --- " << iter << std::endl;
           list<AcceptedHypothesis> acc_hypotheses;
 
-          linkrec.genHypotheses(link_cloud, acc_hypotheses);
-          noderec.genHypotheses(node_cloud, acc_hypotheses);
+          
+          std::cout << " ... generating" << std::endl;
+          linkrec->genHypotheses(link_cloud, acc_hypotheses);
+          noderec->genHypotheses(node_cloud, acc_hypotheses);
 
-          linkrec.mergeHypotheses(scene_xyz, acc_hypotheses, tmp_poses);
+          std::cout << " ... merging" << std::endl;
+          linkrec->mergeHypotheses(scene_xyz, acc_hypotheses, tmp_poses);
 
           if( tmp_poses.size() <= pose_num ) {
             break;
           } else {
             pose_num = tmp_poses.size();
-            std::cout << tmp_poses.size() << std::endl;
+            std::cout << "Number of merged hypotheses: " << tmp_poses.size() << std::endl;
           }
 
-          pcl::PointCloud<myPointXYZ>::Ptr link_model = linkrec.FillModelCloud(tmp_poses);
-          pcl::PointCloud<myPointXYZ>::Ptr node_model = noderec.FillModelCloud(tmp_poses);
+          pcl::PointCloud<myPointXYZ>::Ptr link_model = linkrec->FillModelCloud(tmp_poses);
+          pcl::PointCloud<myPointXYZ>::Ptr node_model = noderec->FillModelCloud(tmp_poses);
 
+          std::cout << " ... filtering" << std::endl;
           if( link_model->empty() == false ) {
             link_cloud = FilterCloud(link_cloud, link_model);
           }
@@ -189,8 +195,8 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
         splitCloud(scene_pc, link_cloud, node_cloud);
 
         t1 = get_wall_time();
-        linkrec.GreedyRecognize(link_cloud, link_poses);
-        noderec.GreedyRecognize(node_cloud, node_poses);
+        linkrec->GreedyRecognize(link_cloud, link_poses);
+        noderec->GreedyRecognize(node_cloud, node_poses);
         t2 = get_wall_time();
 
         std::vector<poseT> tmp_poses;
@@ -213,13 +219,13 @@ void callback(const sensor_msgs::PointCloud2 &pc) {
       case 0:
       case 1:
       case 2:
-        objrec.visualize(viewer, all_poses);
+        objrec->visualize(viewer, all_poses);
         break;
       case 3:
       case 4:
       case 5:
-        linkrec.visualize(viewer, all_poses);
-        noderec.visualize(viewer, all_poses);
+        linkrec->visualize(viewer, all_poses);
+        noderec->visualize(viewer, all_poses);
         break;
     }
     viewer->spin();
@@ -295,6 +301,13 @@ int main(int argc, char** argv)
   pcl::console::parse_argument(argc, argv, "--t", trial_id);
   pcl::console::parse_argument(argc, argv, "--link", link_mesh_name);
   pcl::console::parse_argument(argc, argv, "--node", node_mesh_name);
+  pcl::console::parse_argument(argc, argv, "--link-width", linkWidth);
+  pcl::console::parse_argument(argc, argv, "--node-width", nodeWidth);
+  pcl::console::parse_argument(argc, argv, "--voxel-size", voxelSize);
+
+  linkrec = std::shared_ptr<greedyObjRansac>(new greedyObjRansac(linkWidth, voxelSize));
+  noderec = std::shared_ptr<greedyObjRansac>(new greedyObjRansac(nodeWidth, voxelSize));
+  objrec = std::shared_ptr<greedyObjRansac>(new greedyObjRansac(nodeWidth, voxelSize));
 
   bool view_flag = false;
   if( pcl::console::find_switch(argc, argv, "-v") == true )
@@ -327,14 +340,14 @@ int main(int argc, char** argv)
     case 0:
     case 1:
     case 2:
-      objrec.AddModel(link_mesh_name, "link");
-      objrec.AddModel(node_mesh_name, "node");
+      objrec->AddModel(link_mesh_name, "link");
+      objrec->AddModel(node_mesh_name, "node");
       break;
     case 3:
     case 4:
     case 5:
-      linkrec.AddModel(link_mesh_name, "link");
-      noderec.AddModel(node_mesh_name, "node");
+      linkrec->AddModel(link_mesh_name, "link");
+      noderec->AddModel(node_mesh_name, "node");
       break;
     default:return 0;
   }
