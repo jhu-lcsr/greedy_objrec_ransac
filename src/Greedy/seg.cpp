@@ -1,7 +1,7 @@
 #include <pcl-1.7/pcl/features/normal_3d.h>
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 
-#include "seg.h"
+#include <greedy/seg.h>
 
 greedyObjRansac::greedyObjRansac(double pairWidth_, double voxelSize_) : ObjRecRANSAC(pairWidth_, voxelSize_, 0.5)
 {

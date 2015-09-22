@@ -33,8 +33,7 @@ ENDIF(NOT VTK_FOUND)
 find_package(OpenCV)
 
 IF(NOT OpenCV_FOUND)
-  message(FATAL_ERROR "OpenCV not found. OpenCV is not installed or cmake can not find it. Install OpenCV first and then try again.
-  If OpenCV is installed but cmake can not find it, set the OPENCV_DIR entry to the folder which contains the file OpenCVConfig.cmake")
+  message(FATAL_ERROR "OpenCV not found. OpenCV is not installed or cmake can not find it. Install OpenCV first and then try again. If OpenCV is installed but cmake can not find it, set the OPENCV_DIR entry to the folder which contains the file OpenCVConfig.cmake")
 ENDIF(NOT OpenCV_FOUND)
 
 find_package(PCL 1.7 REQUIRED)
@@ -135,7 +134,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES greedy_objrec_ransac
   CATKIN_DEPENDS pcl_ros sensor_msgs pluginlib nodelet
   DEPENDS ObjRecRANSAC
@@ -146,14 +145,15 @@ catkin_package(
 ###########
 
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
 add_library(greedy_objrec_ransac
-  src/Greedy/utility.h
+  include/greedy/utility.h
   src/Greedy/utility.cpp
-  src/Greedy/seg.h
+  include/greedy/seg.h
   src/Greedy/seg.cpp
 )
 target_link_libraries(greedy_objrec_ransac ${catkin_LIBRARIES} ${ObjRecRANSAC_LIBRARY} ${PCL_LIBRARIES} ${OpenCV_LIBS})

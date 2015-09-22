@@ -1,4 +1,4 @@
-#include "utility.h"
+#include <greedy/utility.h>
 
 bool exists_test (const std::string& name) {
   if (FILE *file = fopen(name.c_str(), "r")) {

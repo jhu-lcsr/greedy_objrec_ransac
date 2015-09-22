@@ -5,7 +5,7 @@
  * Created on March 30, 2015, 4:56 PM
  */
 
-#include <greedy/utility.h>
+#include "utility.h"
 #ifndef _GREEDY_SEG
 #define _GREEDY_SEG
 
